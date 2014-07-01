@@ -1,0 +1,88 @@
+/*covar.c*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
+#include <math.h>
+#include "setup.h"
+#include "covar.h"
+#include "newdcdio.h"
+
+
+
+int covar_setup(setup_data *setup){
+	setup->covar_vals = (float **) malloc(setup->N*sizeof(float *));
+	for(int i = 0; i < setup->N; i++){
+		setup->covar_vals[i] = (float*) malloc(setup->N*sizeof(float));
+		for(int j = 0; j < setup->N; j++){
+			setup->covar_vals[i][j] = 0;
+		}
+	}
+	//printf("Memory allocated\n");
+	return 0;
+}
+
+
+
+int covar(setup_data *setup, float ***X, float ***Y, float ***Z){
+
+	float delX_i, delY_i, delZ_i;
+	float delX_j, delY_j, delZ_j;
+
+	float numerator, denominator;
+
+	for(int frame = setup->start_frame; frame < setup->end_frame; frame++){
+		for(int i = 0; i < setup->N; i++){
+			for(int j = 0; j < setup->N; j++){
+				delX_i = (*X)[frame+1][i]-(*X)[frame][i];
+				delY_i = (*Y)[frame+1][i]-(*Y)[frame][i];
+				delZ_i = (*Z)[frame+1][i]-(*Z)[frame][i];
+				delX_j = (*X)[frame+1][j]-(*X)[frame][j];
+				delY_j = (*Y)[frame+1][j]-(*Y)[frame][j];
+				delZ_j = (*Z)[frame+1][j]-(*Z)[frame][j];
+				
+				numerator = delX_i*delX_j + delY_i*delY_j + delZ_i*delZ_j;
+				denominator = sqrt(delX_i*delX_i + delY_i*delY_i + delZ_i*delZ_i)*sqrt(delX_j*delX_j + delY_j*delY_j + delZ_j*delZ_j);
+				//printf("%f\n", numerator/denominator);
+				setup->covar_vals[i][j] += numerator/denominator;
+								
+				if(i == 572 && j == 409) printf("%f/%f\n", numerator, denominator);
+			}
+		}
+	}
+
+
+
+	return 0;
+}
+
+
+int covar_post(setup_data *setup){
+	char dat_filename[50];
+	FILE *dat_file;
+
+	sprintf(dat_filename, "%s/%s/dat/covar_%s_%d-%d_%d-%d.dat", setup->protein_name, setup->sim_type, setup->protein_name, setup->start_frame, setup->end_frame, setup->runstart, setup->runstart+setup->runnum);
+	dat_file = fopen(dat_filename, "w");
+	if(dat_file == NULL){
+		printf("Failed to open file: %s", dat_filename);
+		exit(0);
+	}
+	float iterations = (setup->runcount*(setup->end_frame-setup->start_frame));
+	for(int i = 0; i < setup->N; i++){
+		for(int j = 0; j < setup->N; j++){
+			setup->covar_vals[i][j] /= iterations;
+			fprintf(dat_file, "%d %d %f\n", i, j, setup->covar_vals[i][j]);
+		}
+	}
+	
+	fclose(dat_file);
+
+
+
+	for(int i = 0; i < setup->N; i++){
+		free(setup->covar_vals[i]);
+	}
+	free(setup->covar_vals);
+	//printf("Memory freed\n");
+	return 0;
+}
