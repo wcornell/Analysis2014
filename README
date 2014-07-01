@@ -2,4 +2,97 @@ README
 
 DCD and PDB Analysis Functions
 
+Author: William Cornell
+Summer '14
+
+
+COMMAND LINE
+
+This program accepts 2, 3, or 4 additional command line arguments,
+in the following order:
+	./<program_name> <protein_name> <sim_type> <setup_file> <analysis_function>
+
+protein_name - Name of protein
+sim_type - simulation type, either pull or equil
+setup_file - optional argument specifying the filename/path of a setup file (format in SETUP section)
+analysis_function - if setup file is given, optional argument specifying the analysis function to be run
+
+
+
+FILE STRUCTURE
+
+The expected file structure is as follows:
+		    	 Parent Directory
+				 /      |       \
+ analysis_program  protein_name  setup_file
+				   /    |     \
+		   sim_type structures topology
+		   /  |   \
+		dat  dcd  structures
+
+MAIN
+
+The main.c file contains the main function. This handles
+command line and prompted user input, runs a one time 
+setup function specific to the analysis program that is 
+being run (usually memory allocation and any extra user input),
+runs the analysis function itself, looped over each trajectory,
+then runs a function-specific post analysis function (deallocation
+and any optional parts, such as file averaging and file cleanup).
+Main also times the analysis portion of the program in CPU time.
+
+The three analysis-specific portions handled by main are
+accomplished with function pointers, stored in the single setup_data
+struct, and assigned to based on the setup structs function_name string.
+
+
+
+SETUP
+
+The setup.c and .h files contain definitions of the setup_data
+struct as a type, as well as a function to populate it with 
+parameters from the optional setup file, if provided.
+
+The setup_data struct contains all data from command line as well
+as the setup file/prompted input that is needed by all programs,
+namely protein_name, function_name, run numbers, and frame numbers.
+It also contains function specific sections for analysis function,
+each labeled as to which function requires them.
+
+Setup file format is as follows:
+
+	runstart	<number>   (first trajectory number)
+	runcount	<number>   (number of trajectories to run)
+	start_frame	<number>   (first frame)
+	end_frame	<number>   (last frame, inclusive)
+
+where the values are separated from their label by a SINGLE TAB,
+not spaces. Make sure your text editor doesn't insert spaces instead
+of a tab ("\t") character.
+
+
+
+NEWDCDIO
+
+Distinct from dcdio.c, included in the SOP source code, this file
+contains the functions necessary to read in DCD files, as well
+as a function that reads in an entire DCD file and runs an analysis
+function via the function pointers stored in the setup_data struct
+passed into the function by pointer.
+
+Expected DCD file format is as follows:
+	<protein_name>_<run_number>_<sim_type>.dcd
+and should be located in the dcd directory in the above diagram.
+
+
+ADDING NEW MODULES
+
+
+
+
+
+
+
+
+
 

@@ -1,3 +1,10 @@
+/*=====================================*\
+ * DCD and PDB Analysis Functions      *                            
+ * Author: William Cornell             *
+ * Date: 7/1/14                        *
+ * Tehver Research Group               *
+\*=====================================*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -33,6 +40,8 @@ int main(int argc, char *argv[]){
 				printf("\nPrograms available:\n\n");
 				printf("pairdist -- asks for pairs of RESIDs and creates .dat files of their relative positions as a function of time\n\n");
 				printf("covar    -- creates a .dat file of the covariance matrix in three columns of the format: i j value where i and j are indices\n\n");
+				/*Add help documentation for new functions here*/
+				printf("For more documentation, see the README included with the source code\n");
 			} 
 			if(!strcmp(buffer, "pairdist")){
 				sprintf(setup.function_name, "pairdist");
@@ -65,7 +74,7 @@ int main(int argc, char *argv[]){
 		setup.analysis_funcptr = &pdb_write;
 		setup.analysis_post_funcptr = &pdb_post;
 	}
-	//Add additional conditionals and function pointer assignment for new functions here
+	/*Add additional conditionals and function pointer assignment for new functions here*/
 
 	if(argc > 3) read_setup_file(argv[3], &setup);
 	else{
@@ -83,6 +92,7 @@ int main(int argc, char *argv[]){
 
 	/*===================================================READ HEADER================================================================*/
 
+    //READS the header to obtain number of atoms, stored in setup.N
 	sprintf(setup.dcd_filename, "%s/%s/dcd/%s_%d_%s.dcd", setup.protein_name, setup.sim_type, setup.protein_name, setup.runstart, setup.sim_type);
 	FILE *header_file = fopen(setup.dcd_filename, "r");
 	dcd_read_header_N(header_file, &setup);
