@@ -22,6 +22,7 @@ analysis_function - if setup file is given, optional argument specifying the ana
 FILE STRUCTURE
 
 The expected file structure is as follows:
+
 		    	 Parent Directory
 				 /      |       \
  analysis_program  protein_name  setup_file
@@ -29,6 +30,8 @@ The expected file structure is as follows:
 		   sim_type structures topology
 		   /  |   \
 		dat  dcd  structures
+
+
 
 MAIN
 

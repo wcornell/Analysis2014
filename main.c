@@ -39,7 +39,7 @@ int main(int argc, char *argv[]){
 			if(!strcmp(buffer, "help")){
 				printf("\nPrograms available:\n\n");
 				printf("pairdist -- asks for pairs of RESIDs and creates .dat files of their relative positions as a function of time\n\n");
-				printf("covar    -- creates a .dat file of the covariance matrix in three columns of the format: i j value where i and j are indices\n\n");
+				printf("covar    -- creates a .dat file of the covariance matrix in three columns of the format: 'i j value' where i and j are indices\n\n");
 				/*Add help documentation for new functions here*/
 				printf("For more documentation, see the README included with the source code\n");
 			} 

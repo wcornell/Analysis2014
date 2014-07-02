@@ -40,13 +40,17 @@ int covar(setup_data *setup, float ***X, float ***Y, float ***Z){
 				delX_j = (*X)[frame+1][j]-(*X)[frame][j];
 				delY_j = (*Y)[frame+1][j]-(*Y)[frame][j];
 				delZ_j = (*Z)[frame+1][j]-(*Z)[frame][j];
-				
-				numerator = delX_i*delX_j + delY_i*delY_j + delZ_i*delZ_j;
-				denominator = sqrt(delX_i*delX_i + delY_i*delY_i + delZ_i*delZ_i)*sqrt(delX_j*delX_j + delY_j*delY_j + delZ_j*delZ_j);
-				//printf("%f\n", numerator/denominator);
-				setup->covar_vals[i][j] += numerator/denominator;
-								
-				if(i == 572 && j == 409) printf("%f/%f\n", numerator, denominator);
+
+				if((delX_i == 0 && delY_i == 0 && delZ_i == 0)||(delX_j == 0 && delY_j == 0 && delZ_j == 0)){
+					setup->covar_vals[i][j] = 0;
+				}
+				else{
+					numerator = delX_i*delX_j + delY_i*delY_j + delZ_i*delZ_j;
+					denominator = sqrt(delX_i*delX_i + delY_i*delY_i + delZ_i*delZ_i)*sqrt(delX_j*delX_j + delY_j*delY_j + delZ_j*delZ_j);
+					//printf("%f\n", numerator/denominator);
+					setup->covar_vals[i][j] += numerator/denominator;
+				}
+				//if(i == 572 && j == 409) printf("%7.3f/%7.3f%7.3f%7.3f%7.3f%7.3f%7.3f%7.3f\n", numerator, denominator, delX_i, delY_i, delZ_i, delX_j, delY_j, delZ_j);
 			}
 		}
 	}
