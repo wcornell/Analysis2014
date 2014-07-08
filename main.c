@@ -14,6 +14,7 @@
 #include "newdcdio.h"
 #include "pairdist.h"
 #include "covar.h"
+#include "covargpu.h"
 #include "pdbio.h"
 
 
@@ -40,6 +41,7 @@ int main(int argc, char *argv[]){
 				printf("\nPrograms available:\n\n");
 				printf("pairdist -- asks for pairs of RESIDs and creates .dat files of their relative positions as a function of time\n\n");
 				printf("covar    -- creates a .dat file of the covariance matrix in three columns of the format: 'i j value' where i and j are indices\n\n");
+				printf("covargpu -- creates a .dat file of the covariance matrix in three columns of the format: 'i j value' where i and j are indices\n(GPU accelerated)\n\n");
 				/*Add help documentation for new functions here*/
 				printf("For more documentation, see the README included with the source code\n");
 			} 
@@ -49,6 +51,10 @@ int main(int argc, char *argv[]){
 			}
 			if(!strcmp(buffer, "covar")){
 				sprintf(setup.function_name, "covar");
+				func_given = 1;
+			}
+			if(!strcmp(buffer, "covargpu")){
+				sprintf(setup.function_name, "covargpu");
 				func_given = 1;
 			}
 			if(!strcmp(buffer, "pdbwrite")){
@@ -68,6 +74,11 @@ int main(int argc, char *argv[]){
 		setup.analysis_setup_funcptr = &covar_setup;
 		setup.analysis_funcptr = &covar;
 		setup.analysis_post_funcptr = &covar_post;
+	}
+	if(!strcmp(setup.function_name, "covargpu")){
+		setup.analysis_setup_funcptr = &covargpu_setup;
+		setup.analysis_funcptr = &covargpu;
+		setup.analysis_post_funcptr = &covargpu_post;
 	}
 	if(!strcmp(setup.function_name, "pdbwrite")){
 		setup.analysis_setup_funcptr = &pdb_setup;

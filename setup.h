@@ -23,6 +23,10 @@ typedef struct{
 	//covar variable
 	float **covar_vals;
 
+	//covargpu variables
+	float **dev_X, **dev_Y, **dev_Z;
+	float **dev_covar_vals;
+
 	//pdbio variable
 	char **line_beginning;
 	FILE *pdb_file;

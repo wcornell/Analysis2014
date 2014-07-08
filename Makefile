@@ -1,13 +1,15 @@
 CC = gcc
-CFLAGS = -c -Wall -std=c99 -g
-LDFLAGS = -lm
-OBJECTS = main.o setup.o newdcdio.o pairdist.o covar.o pdbio.o
+NVCC = nvcc
+CUFLAGS = -c
+CFLAGS =  -c -Wall -std=c99 -g
+LDFLAGS = -lm -L/usr/local/cuda/lib64 -lcuda -lcudart
+OBJECTS = main.o setup.o newdcdio.o pairdist.o covar.o covargpu.o pdbio.o
 
 
 all: analysis
 
 analysis: $(OBJECTS)
-	$(CC) $(OBJECTS) -o analysis  $(LDFLAGS)
+	$(NVCC) $(OBJECTS) -o analysis  $(LDFLAGS)
 
 main.o: main.c 
 	$(CC) $(CFLAGS) main.c -o main.o
@@ -23,6 +25,9 @@ pairdist.o: pairdist.c
 
 covar.o: covar.c
 	$(CC) $(CFLAGS) covar.c -o covar.o
+
+covargpu.o: covargpu.cu
+	$(NVCC) $(CUFLAGS)  covargpu.cu -o covargpu.o
 
 pdbio.o: pdbio.c
 	$(CC) $(CFLAGS) pdbio.c -o pdbio.o
