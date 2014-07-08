@@ -39,11 +39,11 @@ int main(int argc, char *argv[]){
 			scanf("%s", buffer);
 			if(!strcmp(buffer, "help")){
 				printf("\nPrograms available:\n\n");
-				printf("pairdist -- asks for pairs of RESIDs and creates .dat files of their relative positions as a function of time\n\n");
-				printf("covar    -- creates a .dat file of the covariance matrix in three columns of the format: 'i j value' where i and j are indices\n\n");
-				printf("covargpu -- creates a .dat file of the covariance matrix in three columns of the format: 'i j value' where i and j are indices\n(GPU accelerated)\n\n");
+				printf("\tpairdist -- asks for pairs of RESIDs and creates .dat files of their relative positions as a function of time\n\n");
+				printf("\tcovar    -- creates a .dat file of the covariance matrix to 6 decimal places\n\n");
+				printf("\tcovargpu -- GPU accelerated version of covar\n\n");
 				/*Add help documentation for new functions here*/
-				printf("For more documentation, see the README included with the source code\n");
+				printf("For more documentation, see the README included with the source code\n\n");
 			} 
 			if(!strcmp(buffer, "pairdist")){
 				sprintf(setup.function_name, "pairdist");
@@ -106,6 +106,10 @@ int main(int argc, char *argv[]){
     //READS the header to obtain number of atoms, stored in setup.N
 	sprintf(setup.dcd_filename, "%s/%s/dcd/%s_%d_%s.dcd", setup.protein_name, setup.sim_type, setup.protein_name, setup.runstart, setup.sim_type);
 	FILE *header_file = fopen(setup.dcd_filename, "r");
+	if(header_file == NULL){
+		printf("Failed to open file: %s\n", setup.dcd_filename);
+		exit(0);
+	}
 	dcd_read_header_N(header_file, &setup);
 	fclose(header_file);
 	//printf("N: %d\n", setup.N);

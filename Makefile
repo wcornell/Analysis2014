@@ -2,7 +2,7 @@ CC = gcc
 NVCC = nvcc
 CUFLAGS = -c -g
 CFLAGS =  -c -Wall -std=c99 -g
-LDFLAGS = -lm -L/usr/local/cuda/lib64 -lcuda -lcudart
+LDFLAGS = -lm -L/usr/local/cuda/lib64 -lcuda -lcudart 
 OBJECTS = main.o setup.o newdcdio.o pairdist.o covar.o covargpu.o pdbio.o
 
 

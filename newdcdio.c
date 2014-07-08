@@ -64,8 +64,7 @@ int dcd_read_header_N(FILE *header_file, setup_data *setup){
 	int NPRIV;
 	int NSAVC;
 	float DELTA;
-	char *dcd_filename;
-
+	char *dcd_filename = setup->dcd_filename;
 	dcd_read_header(header_file, dcd_filename, &setup->N, &NFILE, &NPRIV, &NSAVC, &DELTA);
 
 	return 0;
