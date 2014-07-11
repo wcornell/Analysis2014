@@ -9,34 +9,36 @@
 #include "newdcdio.h"
 
 
-__global__ void covargpu_add(setup_data *setup){
-	int tid = threadIdx.x + blockIdx.x * blockDim.x;
-	int num_frames = setup->end_frame-setup->start_frame+1;	
+__global__ void covargpu_add(float *covar_vals, float *X, float *Y, float *Z, int N, int num_frames){
 
 	float delX_i, delY_i, delZ_i;
 	float delX_j, delY_j, delZ_j;
 
 	float numerator, denominator;
-    for (int i = 0; i < setup->N; i++) {
-		while(tid < setup->N){
-        	for (int frame = 0; frame <= num_frames; frame++) {
-				delX_i = (setup->dev_X)[frame*setup->N+i]-(setup->dev_X)[i];
-				delY_i = (setup->dev_Y)[frame*setup->N+i]-(setup->dev_Y)[i];
-				delZ_i = (setup->dev_Z)[frame*setup->N+i]-(setup->dev_Z)[i];
-				delX_j = (setup->dev_X)[frame*setup->N+tid]-(setup->dev_X)[tid];
-				delY_j = (setup->dev_Y)[frame*setup->N+tid]-(setup->dev_Y)[tid];
-				delZ_j = (setup->dev_Z)[frame*setup->N+tid]-(setup->dev_Z)[tid];
-				if((delX_i == 0 && delY_i == 0 && delZ_i == 0)||(delX_j == 0 && delY_j == 0 && delZ_j == 0)){
-					setup->dev_covar_vals[i + tid*setup->N] += 0;
-				}
-				else{
-					numerator = delX_i*delX_j + delY_i*delY_j + delZ_i*delZ_j;
-					denominator = sqrt(delX_i*delX_i + delY_i*delY_i + delZ_i*delZ_i)*sqrt(delX_j*delX_j + delY_j*delY_j + delZ_j*delZ_j);
-					setup->dev_covar_vals[i*setup->N + tid] += numerator/denominator;
-					if(tid!=i) setup->dev_covar_vals[i*setup->N + tid] += numerator/denominator;
+    for (int i = 0; i < N; i++) {
+		int tid = threadIdx.x + blockIdx.x * blockDim.x;
+		while(tid < N){
+        	for (int frame = 0; frame < num_frames; frame++) {
+				if(i <= tid){					
+					int index1 = frame*N+i, index2 = frame*N+tid;
+					delX_i = X[index1]-X[i];
+					delY_i = Y[index1]-Y[i];
+					delZ_i = Z[index1]-Z[i];
+					delX_j = X[index2]-X[tid];
+					delY_j = Y[index2]-Y[tid];
+					delZ_j = Z[index2]-Z[tid];
+					if((delX_i == 0 && delY_i == 0 && delZ_i == 0)||(delX_j == 0 && delY_j == 0 && delZ_j == 0)){
+						covar_vals[i*N + tid] += 0;
+					}
+					else{
+						numerator = delX_i*delX_j + delY_i*delY_j + delZ_i*delZ_j;
+						denominator = sqrtf((delX_i*delX_i + delY_i*delY_i + delZ_i*delZ_i)*(delX_j*delX_j + delY_j*delY_j + delZ_j*delZ_j));
+						covar_vals[i*N + tid] += numerator/denominator;
+						if(tid!=i) covar_vals[tid*N + i] += numerator/denominator;
+					}
 				}
 			}
-		tid += blockDim.x * gridDim.x;
+			tid +=  blockDim.x * gridDim.x;
 		}
 	}
 	return;
@@ -45,11 +47,11 @@ __global__ void covargpu_add(setup_data *setup){
 
 extern "C" int covargpu_setup(setup_data *setup){
 	//Get GPU from user
-	int dev;
+/*	int dev;
 	printf("Enter GPU ID: "); fflush(stdout);
 	scanf("%d", &dev);
 	cudaSetDevice(dev);
-	//printf("Setting up device memory\n");
+*/	//printf("Setting up device memory\n");
 
 	//Allocate space for linearized XYZ arrays
 	int num_frames = setup->end_frame-setup->start_frame+1;	
@@ -60,12 +62,12 @@ extern "C" int covargpu_setup(setup_data *setup){
 
 	//Allocate host covar vals, initialize to 0
 	setup->lin_covar_vals = (float *) malloc(setup->N*setup->N*sizeof(float));
-    for (int i = 0; i < setup->N*setup->N; ++i) {
-        setup->lin_covar_vals[i] = 0;
-    }
+	for(int i = 0; i < setup->N*setup->N; i++) setup->lin_covar_vals[i] = 0;
 
-	//Allocate device covar vals
+	//Allocate device covar vals, copy 0 initialized matrix
 	cudaMalloc((void**)&setup->dev_covar_vals, setup->N*setup->N*sizeof(float*));
+	cudaMemcpy(setup->dev_covar_vals, setup->lin_covar_vals, setup->N*setup->N*sizeof(float), cudaMemcpyHostToDevice);
+
 	//printf("Allocation complete\n");
 	return 0;
 }
@@ -77,30 +79,24 @@ extern "C" int covargpu(setup_data *setup, float ***X, float ***Y, float ***Z){
 	float *linY = (float*) malloc(setup->N*num_frames*sizeof(float));
 	float *linZ = (float*) malloc(setup->N*num_frames*sizeof(float));
 	//printf("lin declared\n");
-	for(int i = setup->start_frame; i < setup->end_frame; i++){
+	for(int i = setup->start_frame; i <= setup->end_frame; i++){
 		for(int j = 0; j < setup->N; j++){
 			linX[setup->N*(i-setup->start_frame) + j] = (*X)[i][j];
 			linY[setup->N*(i-setup->start_frame) + j] = (*Y)[i][j];
 			linZ[setup->N*(i-setup->start_frame) + j] = (*Z)[i][j];
 		}
 	}	//printf("Linear matrices created\n");
-	
+
 	//Copy XYZ coordinate arrays to device
-	cudaMemcpy(linX, &setup->dev_X, setup->N*num_frames*sizeof(float), cudaMemcpyHostToDevice);	
-	cudaMemcpy(linY, &setup->dev_Y, setup->N*num_frames*sizeof(float), cudaMemcpyHostToDevice);	
-	cudaMemcpy(linZ, &setup->dev_Z, setup->N*num_frames*sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(setup->dev_X, linX, setup->N*num_frames*sizeof(float), cudaMemcpyHostToDevice);	
+	cudaMemcpy(setup->dev_Y, linY, setup->N*num_frames*sizeof(float), cudaMemcpyHostToDevice);	
+	cudaMemcpy(setup->dev_Z, linZ, setup->N*num_frames*sizeof(float), cudaMemcpyHostToDevice);
 	//printf("XYZ copied\n");
 
-	//Copy running sum of covar values to device
-	cudaMemcpy(setup->lin_covar_vals, setup->dev_covar_vals, setup->N*setup->N*sizeof(float), cudaMemcpyDeviceToHost);
-	//printf("Covar matrix copied\n");
+	//for(int i = 0; i < setup->N*num_frames; i++) printf("%8.3f%8.3f%8.3f\n", linX[i], linY[i], linZ[i]);
 
 	//Add to running sum
-	covargpu_add<<<128,128>>>(setup);
-
-	//Copy running sum back to host
-	cudaMemcpy(setup->dev_covar_vals, setup->lin_covar_vals, setup->N*setup->N*sizeof(float), cudaMemcpyHostToDevice);
-	//printf("Covar matrix updated\n");
+	covargpu_add<<<128,128>>>(setup->dev_covar_vals, setup->dev_X, setup->dev_Y, setup->dev_Z, setup->N, num_frames);
 
 	//Free host linear arrays
 	free(linX);
@@ -123,12 +119,13 @@ extern "C" int covargpu_post(setup_data *setup){
 		exit(0);
 	}
 
+	//Copy running sum back to host
+	cudaMemcpy(setup->lin_covar_vals, setup->dev_covar_vals, setup->N*setup->N*sizeof(float), cudaMemcpyDeviceToHost);
+
 	//Print matrix to .dat file
-	float iterations = (setup->runcount*(setup->end_frame-setup->start_frame));
-	for(int i = 0; i < setup->N; i++){
+	int iterations = (setup->runcount*(setup->end_frame-setup->start_frame));	for(int i = 0; i < setup->N; i++){
 		for(int j = 0; j < setup->N; j++){
-			setup->lin_covar_vals[i + j*setup->N] /= iterations;
-			fprintf(dat_file, "%10.6f", setup->lin_covar_vals[i + j*setup->N]);
+			fprintf(dat_file, "%10.6f", setup->lin_covar_vals[i*setup->N + j]/iterations);
 		}
 	fprintf(dat_file, "\n");
 	}

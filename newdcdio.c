@@ -155,7 +155,7 @@ int dcd_single_analysis(setup_data *setup){
 		exit(0);
 	} 
 	//printf("%d\n", fclose(dcd_file));
-    printf("File closed\n");
+    //printf("File closed\n");
 	
 	/*printf("Frame 0 X190: %f\n", X[0][190]);
 	printf("Frame 0 Y190: %f\n", Y[0][190]);

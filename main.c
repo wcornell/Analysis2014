@@ -42,6 +42,7 @@ int main(int argc, char *argv[]){
 				printf("\tpairdist -- asks for pairs of RESIDs and creates .dat files of their relative positions as a function of time\n\n");
 				printf("\tcovar    -- creates a .dat file of the covariance matrix to 6 decimal places\n\n");
 				printf("\tcovargpu -- GPU accelerated version of covar\n\n");
+				printf("\tpdbwrite -- writes seperate pdb files for each frame desired\n\n");
 				/*Add help documentation for new functions here*/
 				printf("For more documentation, see the README included with the source code\n\n");
 			} 
@@ -118,12 +119,12 @@ int main(int argc, char *argv[]){
 
 	setup.analysis_setup_funcptr(&setup); //call function specific one time setup
 	//printf("%d %d", setup.RESID1[0], setup.RESID2[0]);
-	clock_t start = clock(), diff; //inititalize a few variables to time analysis
-	
+	clock_t start = clock(), diff; //inititalize a few variables for timings analysis
+	printf("\n");
 	for(int i = setup.runstart; i < setup.runstart + setup.runcount; i++){ //loop over each run
 		sprintf(setup.dcd_filename, "%s/%s/dcd/%s_%d_%s.dcd", setup.protein_name, setup.sim_type, setup.protein_name, i, setup.sim_type);
 		setup.runnum = i;
-		printf("\nReading file: %s\n", setup.dcd_filename);
+		printf("Reading file: %s\n", setup.dcd_filename);
 		dcd_single_analysis(&setup);
 	}
 
