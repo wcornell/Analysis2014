@@ -15,39 +15,41 @@ __global__ void covargpu_add(float *covar_vals, float *X, float *Y, float *Z, in
 	float delX_j, delY_j, delZ_j;
 
 	float numerator, denominator;
-    for (int i = 0; i < N; i++) {
-		int tid = threadIdx.x + blockIdx.x * blockDim.x;
-		while(tid < N){
+	int tidx = threadIdx.x + blockIdx.x * blockDim.x;
+	while(tidx < N){
+		int tidy = threadIdx.y + blockIdx.y * blockDim.y;
+		while(tidy < N){
         	for (int frame = 0; frame < num_frames; frame++) {
-				if(i <= tid){					
-					int index1 = frame*N+i, index2 = frame*N+tid;
-					delX_i = X[index1]-X[i];
-					delY_i = Y[index1]-Y[i];
-					delZ_i = Z[index1]-Z[i];
-					delX_j = X[index2]-X[tid];
-					delY_j = Y[index2]-Y[tid];
-					delZ_j = Z[index2]-Z[tid];
+				if(tidx <= tidy){					
+					int index1 = frame*N+tidx, index2 = frame*N+tidy;
+					delX_i = X[index1]-X[tidx];
+					delY_i = Y[index1]-Y[tidx];
+					delZ_i = Z[index1]-Z[tidx];
+					delX_j = X[index2]-X[tidy];
+					delY_j = Y[index2]-Y[tidy];
+					delZ_j = Z[index2]-Z[tidy];
 					if((delX_i == 0 && delY_i == 0 && delZ_i == 0)||(delX_j == 0 && delY_j == 0 && delZ_j == 0)){
-						covar_vals[i*N + tid] += 0;
+						covar_vals[tidx*N + tidy] += 0;
 					}
 					else{
 						numerator = delX_i*delX_j + delY_i*delY_j + delZ_i*delZ_j;
 						denominator = sqrtf((delX_i*delX_i + delY_i*delY_i + delZ_i*delZ_i)*(delX_j*delX_j + delY_j*delY_j + delZ_j*delZ_j));
-						covar_vals[i*N + tid] += numerator/denominator;
-						if(tid!=i) covar_vals[tid*N + i] += numerator/denominator;
+						covar_vals[tidx*N + tidy] += numerator/denominator;
+						if(tidx!=tidy) covar_vals[tidy*N + tidx] += numerator/denominator;
 					}
 				}
 			}
-			tid +=  blockDim.x * gridDim.x;
+			tidy += blockDim.y * gridDim.y;
 		}
+		tidx += blockDim.x * gridDim.x;
 	}
 	return;
 }
 
 
 extern "C" int covargpu_setup(setup_data *setup){
-	//Get GPU from user
-/*	int dev;
+/*	//Get GPU from user
+	int dev;
 	printf("Enter GPU ID: "); fflush(stdout);
 	scanf("%d", &dev);
 	cudaSetDevice(dev);
@@ -95,8 +97,27 @@ extern "C" int covargpu(setup_data *setup, float ***X, float ***Y, float ***Z){
 
 	//for(int i = 0; i < setup->N*num_frames; i++) printf("%8.3f%8.3f%8.3f\n", linX[i], linY[i], linZ[i]);
 
-	//Add to running sum
-	covargpu_add<<<128,128>>>(setup->dev_covar_vals, setup->dev_X, setup->dev_Y, setup->dev_Z, setup->N, num_frames);
+	//setup timing variables
+	cudaEvent_t start, stop;
+	float elapsed_time;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	cudaEventRecord(start, 0);
+
+	//block and thread dimension setup
+	dim3 threadsPerBlock(32, 32);
+	dim3 numBlocks(32, 32);
+
+	//Call kernel to add to running sum
+	covargpu_add<<<numBlocks,threadsPerBlock>>>(setup->dev_covar_vals, setup->dev_X, setup->dev_Y, setup->dev_Z, setup->N, num_frames);
+
+	cudaEventRecord(stop, 0);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&elapsed_time, start, stop);
+	printf("Covariance calculated in %3.2f s\n", elapsed_time/1000);
+	cudaEventDestroy(start);
+	cudaEventDestroy(stop);
+
 
 	//Free host linear arrays
 	free(linX);
