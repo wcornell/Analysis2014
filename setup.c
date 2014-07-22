@@ -15,20 +15,24 @@ int read_setup_file(char *setup_filename, setup_data *setup){
 		exit(0);
 	}
 	else{
-		char buffer1[20];
+		char buffer1[50];
 		char buffer2[20];
-		fgets(buffer1, 19, setup_file);
+		fgets(buffer1, 49, setup_file);
 		sscanf(buffer1, "%s\t%d", buffer2, &(setup->runstart));
 		//printf("runstart: %d\n", setup->runstart);
-		fgets(buffer1, 19, setup_file);
+		fgets(buffer1, 49, setup_file);
 		sscanf(buffer1, "%s\t%d", buffer2, &(setup->runcount));
 		//printf("runcount: %d\n", setup->runcount);
-		fgets(buffer1, 19, setup_file);
+		fgets(buffer1, 49, setup_file);
 		sscanf(buffer1, "%s\t%d", buffer2, &(setup->start_frame));
 		//printf("start_frame: %d\n", setup->start_frame);
-		fgets(buffer1, 19, setup_file);
+		fgets(buffer1, 49, setup_file);
 		sscanf(buffer1, "%s\t%d", buffer2, &(setup->end_frame));
 		//printf("end_frame: %d\n", setup->end_frame);
+		fgets(buffer1, 49, setup_file);
+		sscanf(buffer1, "%s\t%s", buffer2, &(setup->ref_pdb_filename));
+		//printf("ref_pdb: %s\n", setup->ref_pdb_filename);
+
 	}
 	return 0;
 }

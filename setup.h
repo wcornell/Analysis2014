@@ -7,6 +7,7 @@ typedef struct{
 	char *sim_type;
 	char function_name[20];
 	char dcd_filename[50];
+	char ref_pdb_filename[50];
 	int runstart, runcount, runnum;
 	int start_frame, end_frame;
 	int (*analysis_setup_funcptr)();
@@ -20,16 +21,18 @@ typedef struct{
 	int *RESID2;
 	int *RESID_map;
 	
-	//covar variable
+	//covar/covargpu variable
 	float **covar_vals;
-
-	//covargpu variables
 	float *dev_X, *dev_Y, *dev_Z;
 	float *dev_covar_vals, *lin_covar_vals;
 
 	//pdbio variable
 	char **line_beginning;
 	FILE *pdb_file;
+
+	//chi/chigpu variables
+	float *refX, *refY, *refZ;
+
 	
 } setup_data;
 

@@ -2,7 +2,7 @@ README
 
 DCD and PDB Analysis Functions
 
-Author: William Cornell (ALL IAN REALLY)
+Author: William Cornell
 Summer '14
 
 
@@ -10,12 +10,14 @@ COMMAND LINE
 
 This program accepts 2, 3, or 4 additional command line arguments,
 in the following order:
-	./<program_name> <protein_name> <sim_type> <setup_file> <analysis_function>
+	$ ./<program_name> <protein_name> <sim_type> <setup_file> <analysis_function>
 
 protein_name - Name of protein
 sim_type - simulation type, either pull or equil
-setup_file - optional argument specifying the filename/path of a setup file (format in SETUP section)
-analysis_function - if setup file is given, optional argument specifying the analysis function to be run
+setup_file - optional argument specifying the filename/path of 
+             a setup file (format in SETUP section)
+analysis_function - if setup file is given, optional argument 
+                    specifying the analysis function to be run
 
 
 
@@ -23,13 +25,13 @@ FILE STRUCTURE
 
 The expected file structure is as follows:
 
-		    	 Parent Directory
-				 /      |       \
+                 Parent Directory
+                 /      |       \
  analysis_program  protein_name  setup_file
-				   /    |     \
-		   sim_type structures topology
-		   /  |   \
-		dat  dcd  structures
+                   /    |     \
+           sim_type structures topology
+           /  |   \
+        dat  dcd  structures
 
 
 
@@ -88,12 +90,68 @@ Expected DCD file format is as follows:
 and should be located in the dcd directory in the above diagram.
 
 
+
+PAIRDIST
+
+The functions in pairdist.c prompt the user for a number of pairs,
+then for the RESIDs of each member of each pair. These RESIDs are
+then mapped to indices using the reference pdb in the structures
+directory. The function then outputs .dat files to the dat
+directory of the distance between each pair in each frame specified
+in the setup file or prompted for. The user is then able to have
+the seperate files for each trajectory averaged for each pair into 
+a single file and, if so, the user also has the option to erase the
+separate files, leaving only the averaged files.
+Output file format: 
+  pairdist_<RESID1>-<RESID2>_<trajectory>.dat
+
+
+
+PDBIO
+
+The pdbio functions create files in PDB format of each frame in
+each DCD specified. This uses the XYZ positions from the DCD files
+and the PDB specific data from the reference PDB file specified in
+the setup file. Output files are compatible with PDB readers, 
+such as VMD.
+Output file format: 
+  <protein_name>_<frame>_<trajectory>.pdb
+
+
+
+COVAR
+
+The covar.c file includes a CPU-only version of a function that uses
+the specified frames and trajectories to create an N x N covariance
+matrix of values betwee -1 and 1. Covariance is calculated relative
+to the specified start_frame. The output file is averaged over
+all frames and all trajectories and in matrix format of
+space-separated columns and new-line-separated rows.
+Output file format: 
+  covar_<protein_name>_<start_frame>_<end_frame>_<runstart>_<runend>.dat
+
+
+
+COVARGPU
+
+GPU accelerated version of COVAR that is ~100 times faster. Prompts the
+user for a GPU ID (0 to number of GPUs -1)
+
+
+
 ADDING NEW MODULES
 
-
-
-
-
+There are 6 steps to adding new modules or functions to this program:
+1. Include a header file of function declarations in main.c
+2. Include a brief description in the HELP PAGE section of COMMAND LINE
+   in main.c.
+3. Include a check in PROGRAM PROMPT CHECK under COMMAND LINE in main.c
+   and assign the entered string to setup.function_name
+4. Include assignment of function pointers for pre-analysis, analysis,
+   and post-analysis functions in FUNCTION POINTER ASSIGNMENT in main.c
+5. In your function's header file, include setup.h
+6. Add any relevant variables needed from setup to the setup_data struct 
+   defined in setup.h
 
 
 

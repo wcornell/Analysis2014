@@ -13,12 +13,12 @@ int pdb_setup(setup_data *setup){
 	for(int i = 0; i < setup->N; i++){
 		setup->line_beginning[i] = (char *) malloc(27*sizeof(char));
 	}
-	char pdb_filename[50];
+	//char pdb_filename[50];
 	char buffer[100];
-	sprintf(pdb_filename, "%s/structures/%s.ref.pdb", setup->protein_name, setup->protein_name);
-	setup->pdb_file = fopen(pdb_filename, "r");
+	//sprintf(pdb_filename, "%s/structures/%s.ref.pdb", setup->protein_name, setup->protein_name);
+	setup->pdb_file = fopen(setup->ref_pdb_filename, "r");
 	if(!setup->pdb_file){
-		printf("Failed to open file: %s\n", pdb_filename);
+		printf("Failed to open file: %s\n", setup->ref_pdb_filename);
 		exit(0);
 	}
 

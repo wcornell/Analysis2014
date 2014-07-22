@@ -3,7 +3,7 @@ NVCC = nvcc
 CUFLAGS = -c -g -arch=compute_30 -code=sm_30
 CFLAGS =  -c -Wall -std=c99 -g
 LDFLAGS = -lm -L/usr/local/cuda/lib64 -lcuda -lcudart 
-OBJECTS = main.o setup.o newdcdio.o pairdist.o covar.o covargpu.o pdbio.o
+OBJECTS = main.o setup.o newdcdio.o pairdist.o covar.o chi.o pdbio.o covargpu.o
 
 
 all: analysis
@@ -26,11 +26,14 @@ pairdist.o: pairdist.c
 covar.o: covar.c
 	$(CC) $(CFLAGS) covar.c -o covar.o
 
+pdbio.o: pdbio.c
+	$(CC) $(CFLAGS) pdbio.c -o pdbio.o
+
 covargpu.o: covargpu.cu
 	$(NVCC) $(CUFLAGS)  covargpu.cu -o covargpu.o
 
-pdbio.o: pdbio.c
-	$(CC) $(CFLAGS) pdbio.c -o pdbio.o
+chi.o: chi.c
+	$(CC) $(CFLAGS) chi.c -o chi.o
 
 clean:
 	rm -f *.o analysis

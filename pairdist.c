@@ -143,7 +143,8 @@ int pairdist_post(setup_data *setup){
 						exit(0);
 					}
 				}
-				sprintf(dat_filename, "%s/%s/dat/pairdist_%d-%d_average_%d-%d.dat", setup->protein_name, setup->sim_type, setup->RESID1[pair], setup->RESID2[pair], setup->runstart, setup->runstart+setup->runnum);
+				sprintf(dat_filename, "%s/%s/dat/pairdist_%d-%d_average_%d-%d.dat", setup->protein_name, setup->sim_type, 
+						setup->RESID1[pair], setup->RESID2[pair], setup->runstart, setup->runstart+setup->runnum);
 				FILE *avg_dat_file = fopen(dat_filename, "w");
 
 

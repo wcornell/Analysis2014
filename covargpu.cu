@@ -9,6 +9,8 @@
 #include "newdcdio.h"
 
 
+__constant__ float refXYZ[755*3];
+
 __global__ void covargpu_add(float *covar_vals, float *X, float *Y, float *Z, int N, int num_frames){
 
 	float delX_i, delY_i, delZ_i;
@@ -22,12 +24,12 @@ __global__ void covargpu_add(float *covar_vals, float *X, float *Y, float *Z, in
         	for (int frame = 0; frame < num_frames; frame++) {
 				if(tidx <= tidy){					
 					int index1 = frame*N+tidx, index2 = frame*N+tidy;
-					delX_i = X[index1]-X[tidx];
-					delY_i = Y[index1]-Y[tidx];
-					delZ_i = Z[index1]-Z[tidx];
-					delX_j = X[index2]-X[tidy];
-					delY_j = Y[index2]-Y[tidy];
-					delZ_j = Z[index2]-Z[tidy];
+					delX_i = X[index1]-refXYZ[tidx];
+					delY_i = Y[index1]-refXYZ[N+tidx];
+					delZ_i = Z[index1]-refXYZ[N*2+tidx];
+					delX_j = X[index2]-refXYZ[tidy];
+					delY_j = Y[index2]-refXYZ[N+tidy];
+					delZ_j = Z[index2]-refXYZ[N*2+tidy];
 					if((delX_i == 0 && delY_i == 0 && delZ_i == 0)||(delX_j == 0 && delY_j == 0 && delZ_j == 0)){
 						covar_vals[tidx*N + tidy] += 0;
 					}
@@ -62,6 +64,34 @@ extern "C" int covargpu_setup(setup_data *setup){
 	cudaMalloc((void**)&setup->dev_Z, num_frames*sizeof(float)*setup->N); 
 	//printf("XYZ allocated\n");
 
+	sprintf(setup->dcd_filename, "%s/%s/dcd/%s_%d_%s.dcd", setup->protein_name, setup->sim_type, setup->protein_name, setup->runstart, setup->sim_type);
+	FILE *dcd_file = fopen(setup->dcd_filename, "r");
+	if(dcd_file == NULL){
+		printf("Failed to open file: %s\n", setup->dcd_filename);
+		exit(0);
+	}
+	float tempXYZ[setup->N*3];
+	int iin;
+	fread(&iin, 4, 1, dcd_file);
+	//printf("%d\n", iin);
+	fread(tempXYZ, 4*setup->N, 1, dcd_file);
+	fread(&iin, 4, 1, dcd_file);
+	//printf("%d\n", iin);
+	fread(&iin, 4, 1, dcd_file);
+	//printf("%d\n", iin);
+	fread(&tempXYZ[setup->N], 4*setup->N, 1, dcd_file);
+	fread(&iin, 4, 1, dcd_file);
+	//printf("%d\n", iin);
+	fread(&iin, 4, 1, dcd_file);
+	//printf("%d\n", iin);
+	fread(&tempXYZ[setup->N*2], 4*setup->N, 1, dcd_file);
+	fread(&iin, 4, 1, dcd_file);
+	//printf("%d\n", iin);
+	fclose(dcd_file);
+
+
+	cudaMemcpyToSymbol(refXYZ, tempXYZ, setup->N*3*sizeof(float));
+
 	//Allocate host covar vals, initialize to 0
 	setup->lin_covar_vals = (float *) malloc(setup->N*setup->N*sizeof(float));
 	for(int i = 0; i < setup->N*setup->N; i++) setup->lin_covar_vals[i] = 0;
@@ -69,6 +99,7 @@ extern "C" int covargpu_setup(setup_data *setup){
 	//Allocate device covar vals, copy 0 initialized matrix
 	cudaMalloc((void**)&setup->dev_covar_vals, setup->N*setup->N*sizeof(float*));
 	cudaMemcpy(setup->dev_covar_vals, setup->lin_covar_vals, setup->N*setup->N*sizeof(float), cudaMemcpyHostToDevice);
+
 
 	//printf("Allocation complete\n");
 	return 0;
@@ -88,6 +119,7 @@ extern "C" int covargpu(setup_data *setup, float ***X, float ***Y, float ***Z){
 			linZ[setup->N*(i-setup->start_frame) + j] = (*Z)[i][j];
 		}
 	}	//printf("Linear matrices created\n");
+
 
 	//Copy XYZ coordinate arrays to device
 	cudaMemcpy(setup->dev_X, linX, setup->N*num_frames*sizeof(float), cudaMemcpyHostToDevice);	

@@ -61,7 +61,7 @@ int covar(setup_data *setup, float ***X, float ***Y, float ***Z){
 		printf("\r%02.0f%%  ", percent_done);
 		fflush(stdout);
 	}
-	printf("\r    ");
+	printf("\b\b\b\b");
 	fflush(stdout);
 
 

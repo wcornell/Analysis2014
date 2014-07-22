@@ -37,6 +37,7 @@ int main(int argc, char *argv[]){
 		while(!func_given){
 			printf("Enter program to run (or type 'help' for more options): ");
 			scanf("%s", buffer);
+			//HELP PAGE
 			if(!strcmp(buffer, "help")){
 				printf("\nPrograms available:\n\n");
 				printf("\tpairdist -- asks for pairs of RESIDs and creates .dat files of their relative positions as a function of time\n\n");
@@ -46,6 +47,7 @@ int main(int argc, char *argv[]){
 				/*Add help documentation for new functions here*/
 				printf("For more documentation, see the README included with the source code\n\n");
 			} 
+			//PROGRAM PROMPT CHECK
 			if(!strcmp(buffer, "pairdist")){
 				sprintf(setup.function_name, "pairdist");
 				func_given = 1;
@@ -66,6 +68,7 @@ int main(int argc, char *argv[]){
 		}
 	} else sprintf(setup.function_name, "%s", argv[4]);
 
+	//FUNCTION POINTER ASSIGNMENT
 	if(!strcmp(setup.function_name, "pairdist")){
 		setup.analysis_setup_funcptr = &pairdist_setup;
 		setup.analysis_funcptr = &pairdist;
@@ -118,7 +121,6 @@ int main(int argc, char *argv[]){
 	/*====================================================ANALYSIS===================================================================*/
 
 	setup.analysis_setup_funcptr(&setup); //call function specific one time setup
-	//printf("%d %d", setup.RESID1[0], setup.RESID2[0]);
 	clock_t start = clock(), diff; //inititalize a few variables for timings analysis
 	printf("\n");
 	for(int i = setup.runstart; i < setup.runstart + setup.runcount; i++){ //loop over each run
@@ -127,11 +129,9 @@ int main(int argc, char *argv[]){
 		printf("Reading file: %s\n", setup.dcd_filename);
 		dcd_single_analysis(&setup);
 	}
-
 	
 	diff = clock() - start; //difference in time
 	int msec = diff*1000/CLOCKS_PER_SEC;
-
 	printf("\nAnalysis completed in %d.%d seconds (CPU time)\n", msec/1000, msec%1000);
 
 	setup.analysis_post_funcptr(&setup);
