@@ -14,7 +14,8 @@
 #include "newdcdio.h"
 #include "pairdist.h"
 #include "covar.h"
-#include "covargpu.h"
+#include "covargpu0.h"
+#include "covargpuavg.h"
 #include "pdbio.h"
 
 
@@ -22,7 +23,7 @@ int main(int argc, char *argv[]){
 
 	/*==============================================COMMAND LINE============================================================================*/
 	if(argc < 3){
-		printf("Insufficient number of command line arguments given\n");
+		printf("Usage: ./analysis <protein_directory> <sub_directory> <setup_file> <analysis_function>\n");
 		exit(0);
 	}
 	//Command line arguments (4 and 5 optional): $ ./analysis <protein_name> <sim_type> <setup_file> <analysis_function>
@@ -42,7 +43,8 @@ int main(int argc, char *argv[]){
 				printf("\nPrograms available:\n\n");
 				printf("\tpairdist -- asks for pairs of RESIDs and creates .dat files of their relative positions as a function of time\n\n");
 				printf("\tcovar    -- creates a .dat file of the covariance matrix to 6 decimal places\n\n");
-				printf("\tcovargpu -- GPU accelerated version of covar\n\n");
+				printf("\tcovargpu0 -- GPU accelerated version of covar, compared to reference pdb\n\n");
+				printf("\tcovargpuavg -- GPU accelerated version of covar, compared to average position\n\n");
 				printf("\tpdbwrite -- writes seperate pdb files for each frame desired\n\n");
 				/*Add help documentation for new functions here*/
 				printf("For more documentation, see the README included with the source code\n\n");
@@ -56,8 +58,12 @@ int main(int argc, char *argv[]){
 				sprintf(setup.function_name, "covar");
 				func_given = 1;
 			}
-			if(!strcmp(buffer, "covargpu")){
-				sprintf(setup.function_name, "covargpu");
+			if(!strcmp(buffer, "covargpu0")){
+				sprintf(setup.function_name, "covargpu0");
+				func_given = 1;
+			}
+			if(!strcmp(buffer, "covargpuavg")){
+				sprintf(setup.function_name, "covargpuavg");
 				func_given = 1;
 			}
 			if(!strcmp(buffer, "pdbwrite")){
@@ -79,10 +85,15 @@ int main(int argc, char *argv[]){
 		setup.analysis_funcptr = &covar;
 		setup.analysis_post_funcptr = &covar_post;
 	}
-	if(!strcmp(setup.function_name, "covargpu")){
-		setup.analysis_setup_funcptr = &covargpu_setup;
-		setup.analysis_funcptr = &covargpu;
-		setup.analysis_post_funcptr = &covargpu_post;
+	if(!strcmp(setup.function_name, "covargpu0")){
+		setup.analysis_setup_funcptr = &covargpu0_setup;
+		setup.analysis_funcptr = &covargpu0;
+		setup.analysis_post_funcptr = &covargpu0_post;
+	}
+	if(!strcmp(setup.function_name, "covargpuavg")){
+		setup.analysis_setup_funcptr = &covargpuavg_setup;
+		setup.analysis_funcptr = &covargpuavg;
+		setup.analysis_post_funcptr = &covargpuavg_post;
 	}
 	if(!strcmp(setup.function_name, "pdbwrite")){
 		setup.analysis_setup_funcptr = &pdb_setup;
@@ -140,26 +151,4 @@ int main(int argc, char *argv[]){
 
 	return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

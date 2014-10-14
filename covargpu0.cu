@@ -1,17 +1,14 @@
-/*covargpu.c*/
+/*covargpu0.cu*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
 #include <math.h>
 #include "setup.h"
-#include "covargpu.h"
+#include "covargpu0.h"
 #include "newdcdio.h"
 
-
-__constant__ float refXYZ[755*3];
-
-__global__ void covargpu_add(float *covar_vals, float *X, float *Y, float *Z, int N, int num_frames){
+__global__ void covargpu0_add(float *covar_vals, float *X, float *Y, float *Z, int N, int num_frames){
 
 	float delX_i, delY_i, delZ_i;
 	float delX_j, delY_j, delZ_j;
@@ -24,12 +21,12 @@ __global__ void covargpu_add(float *covar_vals, float *X, float *Y, float *Z, in
         	for (int frame = 0; frame < num_frames; frame++) {
 				if(tidx <= tidy){					
 					int index1 = frame*N+tidx, index2 = frame*N+tidy;
-					delX_i = X[index1]-refXYZ[tidx];
-					delY_i = Y[index1]-refXYZ[N+tidx];
-					delZ_i = Z[index1]-refXYZ[N*2+tidx];
-					delX_j = X[index2]-refXYZ[tidy];
-					delY_j = Y[index2]-refXYZ[N+tidy];
-					delZ_j = Z[index2]-refXYZ[N*2+tidy];
+					delX_i = X[index1]-X[tidx];
+					delY_i = Y[index1]-Y[tidx];
+					delZ_i = Z[index1]-Z[tidx];
+					delX_j = X[index2]-X[tidy];
+					delY_j = Y[index2]-Y[tidy];
+					delZ_j = Z[index2]-Z[tidy];
 					if((delX_i == 0 && delY_i == 0 && delZ_i == 0)||(delX_j == 0 && delY_j == 0 && delZ_j == 0)){
 						covar_vals[tidx*N + tidy] += 0;
 					}
@@ -49,13 +46,14 @@ __global__ void covargpu_add(float *covar_vals, float *X, float *Y, float *Z, in
 }
 
 
-extern "C" int covargpu_setup(setup_data *setup){
-/*	//Get GPU from user
+
+extern "C" int covargpu0_setup(setup_data *setup){
+	//Get GPU from user
 	int dev;
 	printf("Enter GPU ID: "); fflush(stdout);
 	scanf("%d", &dev);
 	cudaSetDevice(dev);
-*/	//printf("Setting up device memory\n");
+	//printf("Setting up device memory\n");
 
 	//Allocate space for linearized XYZ arrays
 	int num_frames = setup->end_frame-setup->start_frame+1;	
@@ -89,9 +87,6 @@ extern "C" int covargpu_setup(setup_data *setup){
 	//printf("%d\n", iin);
 	fclose(dcd_file);
 
-
-	cudaMemcpyToSymbol(refXYZ, tempXYZ, setup->N*3*sizeof(float));
-
 	//Allocate host covar vals, initialize to 0
 	setup->lin_covar_vals = (float *) malloc(setup->N*setup->N*sizeof(float));
 	for(int i = 0; i < setup->N*setup->N; i++) setup->lin_covar_vals[i] = 0;
@@ -105,7 +100,8 @@ extern "C" int covargpu_setup(setup_data *setup){
 	return 0;
 }
 
-extern "C" int covargpu(setup_data *setup, float ***X, float ***Y, float ***Z){
+
+extern "C" int covargpu0(setup_data *setup, float ***X, float ***Y, float ***Z){
 	//Allocate linearized, contiguous arrays for XYZ (num_frames x N)
 	int num_frames = setup->end_frame-setup->start_frame+1;	
 	float *linX = (float*) malloc(setup->N*num_frames*sizeof(float));	
@@ -141,7 +137,7 @@ extern "C" int covargpu(setup_data *setup, float ***X, float ***Y, float ***Z){
 	dim3 numBlocks(32, 32);
 
 	//Call kernel to add to running sum
-	covargpu_add<<<numBlocks,threadsPerBlock>>>(setup->dev_covar_vals, setup->dev_X, setup->dev_Y, setup->dev_Z, setup->N, num_frames);
+	covargpu0_add<<<numBlocks,threadsPerBlock>>>(setup->dev_covar_vals, setup->dev_X, setup->dev_Y, setup->dev_Z, setup->N, num_frames);
 
 	cudaEventRecord(stop, 0);
 	cudaEventSynchronize(stop);
@@ -160,12 +156,13 @@ extern "C" int covargpu(setup_data *setup, float ***X, float ***Y, float ***Z){
 }
 
 
-extern "C" int covargpu_post(setup_data *setup){
+
+extern "C" int covargpu0_post(setup_data *setup){
 
 	//Create/Open .dat file
 	char dat_filename[50];
 	FILE *dat_file;
-	sprintf(dat_filename, "%s/%s/dat/covar_%s_%d-%d_%d-%d.dat", setup->protein_name, setup->sim_type, setup->protein_name, setup->start_frame, setup->end_frame, setup->runstart, setup->runstart+setup->runnum);
+	sprintf(dat_filename, "%s/%s/dat/covargpu0_%s_%d-%d_%d-%d.dat", setup->protein_name, setup->sim_type, setup->protein_name, setup->start_frame, setup->end_frame, setup->runstart, setup->runstart+setup->runnum);
 	dat_file = fopen(dat_filename, "w");
 	if(dat_file == NULL){
 		printf("Failed to open file: %s", dat_filename);
@@ -176,7 +173,8 @@ extern "C" int covargpu_post(setup_data *setup){
 	cudaMemcpy(setup->lin_covar_vals, setup->dev_covar_vals, setup->N*setup->N*sizeof(float), cudaMemcpyDeviceToHost);
 
 	//Print matrix to .dat file
-	int iterations = (setup->runcount*(setup->end_frame-setup->start_frame));	for(int i = 0; i < setup->N; i++){
+	int iterations = (setup->runcount*(setup->end_frame-setup->start_frame));	
+	for(int i = 0; i < setup->N; i++){
 		for(int j = 0; j < setup->N; j++){
 			fprintf(dat_file, "%10.6f", setup->lin_covar_vals[i*setup->N + j]/iterations);
 		}
